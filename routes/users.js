@@ -1,6 +1,6 @@
 var express = require("express");
 var router = express.Router();
-var sha256 = require("crypto-js/sha256");
+var CryptoJS = require("crypto-js");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const uri =
   "mongodb+srv://raultorraco:ih14t5BL6VYBWXeg@diverweb.hvgpvsg.mongodb.net/?retryWrites=true&w=majority&appName=diverweb";
@@ -19,12 +19,11 @@ router.get("/", function (req, res, next) {
 
 /* POST users listing. */
 router.post("/compUser", async function (req, res, next) {
-  const { email, password } = req.body;
   try {
     await client.connect();
     try {
       let compU = await client.db("diverweb").collection("users").findOne({
-        email: email,
+        email: req.body.email,
       });
       if (compU) {
         try {
@@ -32,11 +31,14 @@ router.post("/compUser", async function (req, res, next) {
             .db("diverweb")
             .collection("users")
             .findOne({
-              email: email,
-              password: sha256(process.env.SK + password),
+              email: req.body.email,
+              password: CryptoJS.MD5(process.env.SK + req.body.pass).toString(),
             });
+          console.log("ComPass:", comPass);
           if (!comPass) {
-            res.send("IEP");
+            res.send(JSON.stringify({ res: "IEP" }));
+          } else {
+            res.send(JSON.stringify({ res: comPass._id.toString() }));
           }
         } catch (error) {
           throw error;
@@ -47,10 +49,10 @@ router.post("/compUser", async function (req, res, next) {
             .db("diverweb")
             .collection("users")
             .insertOne({
-              email: email,
-              password: sha256(process.env.SK + password).toString(),
+              email: req.body.email,
+              password: CryptoJS.MD5(process.env.SK + req.body.pass).toString(),
             });
-          res.send(JSON.stringify(createU));
+          res.send(JSON.stringify({ res: createU.insertedId.toString() }));
         } catch (error) {
           throw error;
         }
