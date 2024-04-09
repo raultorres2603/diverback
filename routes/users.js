@@ -36,21 +36,22 @@ router.post("/compUser", async function (req, res, next) {
               password: sha256(process.env.SK + password),
             });
           if (!comPass) {
-            throw new Error("IEP").message;
+            res.send(new Error("IEP").message);
           }
         } catch (error) {
           throw new Error(error).message;
         }
       } else {
-        let createU = await client
-          .db("diverweb")
-          .collection("users")
-          .insertOne({
-            email: email,
-            password: sha256(process.env.SK + password),
-          });
-        if (!createU) {
-          throw new Error("IEP").message;
+        try {
+          let createU = await client
+            .db("diverweb")
+            .collection("users")
+            .insertOne({
+              email: email,
+              password: sha256(process.env.SK + password),
+            });
+        } catch (error) {
+          throw new Error(error).message;
         }
         res.send(createU.insertedId.toString());
       }
