@@ -1,7 +1,7 @@
 var express = require("express");
 var router = express.Router();
 var CryptoJS = require("crypto-js");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri =
   "mongodb+srv://raultorraco:ih14t5BL6VYBWXeg@diverweb.hvgpvsg.mongodb.net/?retryWrites=true&w=majority&appName=diverweb";
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -18,6 +18,22 @@ router.get("/", function (req, res, next) {
 });
 
 /* POST users listing. */
+
+router.post("/getInfo", async function (req, res, next) {
+  try {
+    await client.connect();
+    const user = await client
+      .db("diverweb")
+      .collection("users")
+      .findOne({ _id: new ObjectId(req.body.userId) });
+    res.send(JSON.stringify(user));
+  } catch (error) {
+    throw error;
+  } finally {
+    await client.close();
+  }
+});
+
 router.post("/compUser", async function (req, res, next) {
   try {
     await client.connect();
