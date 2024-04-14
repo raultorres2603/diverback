@@ -34,6 +34,36 @@ router.post("/getInfo", async function (req, res, next) {
   }
 });
 
+router.post("/update", async function (req, res, next) {
+  try {
+    await client.connect();
+    try {
+      const user = await client
+        .db("diverweb")
+        .collection("users")
+        .updateOne(
+          { _id: new ObjectId(req.body.id) },
+          {
+            $set: {
+              name: req.body.name,
+              fname: req.body.fname,
+              genre: req.body.genre,
+              profile: req.body.profile,
+              birthday: new Date(req.body.birthday),
+            },
+          }
+        ); // { $set: req.body });
+      res.send("OK");
+    } catch (error) {
+      throw error;
+    }
+  } catch (error) {
+    throw error;
+  } finally {
+    await client.close();
+  }
+});
+
 router.post("/compUser", async function (req, res, next) {
   try {
     await client.connect();
