@@ -53,7 +53,7 @@ router.post("/update", async function (req, res, next) {
             },
           }
         ); // { $set: req.body });
-      res.send("OK");
+      res.send({ res: "OK" });
     } catch (error) {
       throw error;
     }
