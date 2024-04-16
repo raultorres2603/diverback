@@ -50,6 +50,7 @@ router.post("/update", async function (req, res, next) {
               genre: req.body.genre,
               profile: req.body.profile,
               birthday: new Date(req.body.birthday),
+              avatar: req.body.avatar,
             },
           }
         ); // { $set: req.body });
