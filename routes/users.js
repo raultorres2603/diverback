@@ -19,7 +19,7 @@ router.get("/", function (req, res, next) {
 
 /* POST users listing. */
 
-router.post("/getInfo", async function (req, res, next) {
+router.post("/getInfo", async (req, res, next) => {
   try {
     await client.connect();
     try {
@@ -33,8 +33,6 @@ router.post("/getInfo", async function (req, res, next) {
     }
   } catch (error) {
     throw error;
-  } finally {
-    await client.close();
   }
 });
 
@@ -42,7 +40,7 @@ router.post("/update", async function (req, res, next) {
   try {
     await client.connect();
     try {
-      const user = await client
+      await client
         .db("diverweb")
         .collection("users")
         .updateOne(
@@ -64,8 +62,6 @@ router.post("/update", async function (req, res, next) {
     }
   } catch (error) {
     throw error;
-  } finally {
-    await client.close();
   }
 });
 
@@ -113,8 +109,6 @@ router.post("/compUser", async function (req, res, next) {
     }
   } catch (error) {
     throw error;
-  } finally {
-    await client.close();
   }
 });
 
