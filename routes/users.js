@@ -22,11 +22,15 @@ router.get("/", function (req, res, next) {
 router.post("/getInfo", async function (req, res, next) {
   try {
     await client.connect();
-    const user = await client
-      .db("diverweb")
-      .collection("users")
-      .findOne({ _id: new ObjectId(req.body.userId) });
-    res.send(JSON.stringify(user));
+    try {
+      const user = await client
+        .db("diverweb")
+        .collection("users")
+        .findOne({ _id: new ObjectId(req.body.userId) });
+      res.send(JSON.stringify(user));
+    } catch (error) {
+      throw error;
+    }
   } catch (error) {
     throw error;
   } finally {
