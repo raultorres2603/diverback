@@ -65,6 +65,26 @@ router.post("/update", async function (req, res, next) {
   }
 });
 
+router.post("/addDiverDay", async function (req, res, next) {
+  try {
+    await client.connect();
+    try {
+      await client
+        .db("diverweb")
+        .collection("users")
+        .updateOne(
+          { _id: new ObjectId(req.body.id) },
+          { $push: { diverdays: req.body.diverday } }
+        ); // { $set: req.body });
+      res.send({ res: "OK" });
+    } catch (error) {
+      throw error;
+    }
+  } catch (error) {
+    throw error;
+  }
+});
+
 router.post("/compUser", async function (req, res, next) {
   try {
     await client.connect();
