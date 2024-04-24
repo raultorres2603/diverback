@@ -69,14 +69,29 @@ router.post("/addDiverDay", async function (req, res, next) {
   try {
     await client.connect();
     try {
-      await client
+      let comprobExists = await client
         .db("diverweb")
         .collection("users")
-        .updateOne(
-          { _id: new ObjectId(req.body.id) },
-          { $push: { diverdays: req.body.diverday } }
-        ); // { $set: req.body });
-      res.send({ res: "OK" });
+        .findOne({
+          _id: new ObjectId(req.body.id),
+          diverdays: { $in: [req.body.diverday] },
+        });
+      if (comprobExists) {
+        res.send(JSON.stringify({ res: "EXISTS" }));
+      } else {
+        try {
+          await client
+            .db("diverweb")
+            .collection("users")
+            .updateOne(
+              { _id: new ObjectId(req.body.id) },
+              { $push: { diverdays: req.body.diverday } }
+            ); // { $set: req.body });
+          res.send({ res: "OK" });
+        } catch (error) {
+          throw error;
+        }
+      }
     } catch (error) {
       throw error;
     }
