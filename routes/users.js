@@ -26,8 +26,24 @@ router.post("/getInfo", async (req, res, next) => {
       const user = await client
         .db("diverweb")
         .collection("users")
-        .findOne({ _id: new ObjectId(req.body.userId) });
-      res.send(JSON.stringify(user));
+        .aggregate([
+          {
+            $match: {
+              _id: new ObjectId(req.body.userId),
+            },
+          },
+          {
+            $lookup: {
+              from: "users",
+              localField: "_id",
+              foreignField: "friends.id",
+              as: "friends",
+            },
+          },
+        ])
+        .toArray();
+      console.log(user);
+      res.send(JSON.stringify(user[0]));
     } catch (error) {
       throw error;
     }
