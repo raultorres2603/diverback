@@ -85,7 +85,7 @@ router.post("/getInfo", async (req, res, next) => {
       console.log(user);
       res.send(JSON.stringify(user[0]));
     } catch (error) {
-      throw error;
+      res.send(JSON.stringify({ res: "!PVER" }));
     }
   } catch (error) {
     throw error;
