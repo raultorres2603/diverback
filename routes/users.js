@@ -14,35 +14,37 @@ const client = new MongoClient(uri, {
 });
 var jwt = require("jsonwebtoken");
 
-function decodeToken(token) {
-  try {
-    return jwt.verify(token, "c<|ua6zX/0tU(Qv70Pu", {
-      algorithm: "RS256",
-    });
-  } catch (error) {
-    return false;
-  }
-}
-
 function verifyToken(reqToken, uToken) {
   try {
-    const reqTok = jwt.verify(reqToken, "c<|ua6zX/0tU(Qv70Pu", {
-      algorithm: "RS256",
-    });
+    const reqTok = jwt.verify(reqToken, "c<|ua6zX/0tU(Qv70Pu");
+    console.log(reqTok);
     try {
-      const uTok = jwt.verify(uToken, "c<|ua6zX/0tU(Qv70Pu", {
-        algorithm: "RS256",
-      });
+      const uTok = jwt.verify(uToken, "c<|ua6zX/0tU(Qv70Pu");
+      console.log(uTok);
       if (reqTok.u == uTok.u) {
         return true;
       } else {
         return "NEQ";
       }
     } catch (error) {
-      return "!PVER";
+      console.log(error);
+      if (error.name == "TokenExpiredError") {
+        let actuTok = jwt.sign({ u: uToken }, "c<|ua6zX/0tU(Qv70Pu");
+        return actuTok;
+      } else {
+        console.log(error);
+        return "!PVER";
+      }
     }
   } catch (error) {
-    return "!PVER";
+    console.log(error);
+    if (error.name == "TokenExpiredError") {
+      let actuTok = jwt.sign({ u: reqToken }, "c<|ua6zX/0tU(Qv70Pu");
+      return actuTok;
+    } else {
+      console.log(error);
+      return "!PVER";
+    }
   }
 }
 
@@ -77,14 +79,19 @@ router.post("/getInfo", async (req, res, next) => {
           {
             $project: {
               password: 0,
-              token: 0,
+              _id: 0,
             },
           },
         ])
         .toArray();
-      console.log(user);
-      res.send(JSON.stringify(user[0]));
+      if (user.length == 0) {
+        res.send(JSON.stringify({ res: "TOKERR" }));
+      } else {
+        console.log(user);
+        res.send(JSON.stringify(user[0]));
+      }
     } catch (error) {
+      console.log(error);
       res.send(JSON.stringify({ res: "!PVER" }));
     }
   } catch (error) {
@@ -100,7 +107,7 @@ router.post("/update", async function (req, res, next) {
         .db("diverweb")
         .collection("users")
         .updateOne(
-          { _id: new ObjectId(req.body.id) },
+          { token: req.body.token },
           {
             $set: {
               name: req.body.name,
@@ -129,7 +136,7 @@ router.post("/addDiverDay", async function (req, res, next) {
         .db("diverweb")
         .collection("users")
         .findOne({
-          _id: new ObjectId(req.body.id),
+          token: req.body.token,
           diverdays: { $in: [req.body.diverday] },
         });
       if (comprobExists) {
@@ -165,7 +172,7 @@ router.post("/celebDiverday", async function (req, res, next) {
         .collection("users")
         .updateOne(
           {
-            _id: new ObjectId(req.body.id),
+            token: req.body.token,
             "diverdays.diverDay": req.body.diverday.diverDay,
           },
           {
@@ -237,7 +244,22 @@ router.post("/compUser", async function (req, res, next) {
                 if (verification == "NEQ") {
                   res.send(JSON.stringify({ res: "NEQ" }));
                 } else {
-                  res.send(JSON.stringify({ res: "!PVER" }));
+                  const actuTok = jwt.sign(
+                    { u: comPass._id.toString() },
+                    "c<|ua6zX/0tU(Qv70Pu"
+                  );
+                  try {
+                    await client
+                      .db("diverweb")
+                      .collection("users")
+                      .updateOne(
+                        { _id: new ObjectId(comPass._id) },
+                        { $set: { token: actuTok } }
+                      );
+                    res.send(JSON.stringify({ res: actuTok.toString() }));
+                  } catch (error) {
+                    res.send(JSON.stringify({ res: "!PVER" }));
+                  }
                 }
               }
             } else if (!comPass.token && req.body.token) {
