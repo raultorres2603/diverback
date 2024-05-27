@@ -22,14 +22,16 @@ function verifyToken(reqToken, uToken) {
       const uTok = jwt.verify(uToken, "c<|ua6zX/0tU(Qv70Pu");
       console.log(uTok);
       if (reqTok.u == uTok.u) {
-        return true;
+        return uToken;
       } else {
         return "NEQ";
       }
     } catch (error) {
       console.log(error);
       if (error.name == "TokenExpiredError") {
-        let actuTok = jwt.sign({ u: uToken }, "c<|ua6zX/0tU(Qv70Pu");
+        let actuTok = jwt.sign({ u: uToken }, "c<|ua6zX/0tU(Qv70Pu", {
+          expiresIn: "1h",
+        });
         return actuTok;
       } else {
         console.log(error);
@@ -39,7 +41,9 @@ function verifyToken(reqToken, uToken) {
   } catch (error) {
     console.log(error);
     if (error.name == "TokenExpiredError") {
-      let actuTok = jwt.sign({ u: reqToken }, "c<|ua6zX/0tU(Qv70Pu");
+      let actuTok = jwt.sign({ u: reqToken }, "c<|ua6zX/0tU(Qv70Pu", {
+        expiresIn: "1h",
+      });
       return actuTok;
     } else {
       console.log(error);
@@ -211,50 +215,36 @@ router.post("/compUser", async function (req, res, next) {
             res.send(JSON.stringify({ res: "IEP" }));
           } else {
             if (comPass.token && req.body.token) {
-              let verification = verifyToken(req.body.token, comPass.token);
+              const verification = verifyToken(req.body.token, comPass.token);
               console.log(verification);
-              if (verification == true) {
+              if (verification != "NEQ" && verification != "!PVER") {
                 try {
-                  jwt.verify(comPass.token, "c<|ua6zX/0tU(Qv70Pu");
                   res.send(JSON.stringify({ res: comPass.token.toString() }));
                 } catch (error) {
-                  if (error.name == "TokenExpiredError") {
-                    const actuToken = jwt.sign(
-                      { u: comPass._id.toString() },
-                      "c<|ua6zX/0tU(Qv70Pu",
-                      {
-                        expiresIn: "1h",
-                      }
-                    );
-                    try {
-                      await client
-                        .db("diverweb")
-                        .collection("users")
-                        .updateOne(
-                          { _id: new ObjectId(comPass._id) },
-                          { $set: { token: actuToken } }
-                        );
-                      res.send(JSON.stringify({ res: actuToken.toString() }));
-                    } catch (error) {
-                      res.send(JSON.stringify({ res: "!PVER" }));
-                    }
-                  }
-                }
-              } else {
-                if (verification == "NEQ") {
-                  res.send(JSON.stringify({ res: "NEQ" }));
-                } else {
-                  const actuTok = jwt.sign(
-                    { u: comPass._id.toString() },
-                    "c<|ua6zX/0tU(Qv70Pu"
-                  );
                   try {
                     await client
                       .db("diverweb")
                       .collection("users")
                       .updateOne(
                         { _id: new ObjectId(comPass._id) },
-                        { $set: { token: actuTok } }
+                        { $set: { token: verification } }
+                      );
+                    res.send(JSON.stringify({ res: verification.toString() }));
+                  } catch (error) {
+                    res.send(JSON.stringify({ res: "!PVER" }));
+                  }
+                }
+              } else {
+                if (verification == "NEQ") {
+                  res.send(JSON.stringify({ res: "NEQ" }));
+                } else {
+                  try {
+                    await client
+                      .db("diverweb")
+                      .collection("users")
+                      .updateOne(
+                        { _id: new ObjectId(comPass._id) },
+                        { $set: { token: verification } }
                       );
                     res.send(JSON.stringify({ res: actuTok.toString() }));
                   } catch (error) {
@@ -262,7 +252,7 @@ router.post("/compUser", async function (req, res, next) {
                   }
                 }
               }
-            } else if (!comPass.token && req.body.token) {
+            } else if (!comPass.token) {
               const actuToken = jwt.sign(
                 { u: comPass._id.toString() },
                 "c<|ua6zX/0tU(Qv70Pu",
