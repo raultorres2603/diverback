@@ -12,6 +12,40 @@ const client = new MongoClient(uri, {
     deprecationErrors: true,
   },
 });
+var jwt = require("jsonwebtoken");
+
+function decodeToken(token) {
+  try {
+    return jwt.verify(token, "c<|ua6zX/0tU(Qv70Pu", {
+      algorithm: "RS256",
+    });
+  } catch (error) {
+    return false;
+  }
+}
+
+function verifyToken(reqToken, uToken) {
+  try {
+    const reqTok = jwt.verify(reqToken, "c<|ua6zX/0tU(Qv70Pu", {
+      algorithm: "RS256",
+    });
+    try {
+      const uTok = jwt.verify(uToken, "c<|ua6zX/0tU(Qv70Pu", {
+        algorithm: "RS256",
+      });
+      if (reqTok.u == uTok.u) {
+        return true;
+      } else {
+        return "NEQ";
+      }
+    } catch (error) {
+      return "!PVER";
+    }
+  } catch (error) {
+    return "!PVER";
+  }
+}
+
 /* GET users listing. */
 router.get("/", function (req, res, next) {
   res.send("respond with a resource");
@@ -29,7 +63,7 @@ router.post("/getInfo", async (req, res, next) => {
         .aggregate([
           {
             $match: {
-              _id: new ObjectId(req.body.userId),
+              token: req.body.userId,
             },
           },
           {
@@ -38,6 +72,12 @@ router.post("/getInfo", async (req, res, next) => {
               localField: "_id",
               foreignField: "friends.id",
               as: "friends",
+            },
+          },
+          {
+            $project: {
+              password: 0,
+              token: 0,
             },
           },
         ])
@@ -163,19 +203,131 @@ router.post("/compUser", async function (req, res, next) {
           if (!comPass) {
             res.send(JSON.stringify({ res: "IEP" }));
           } else {
-            res.send(JSON.stringify({ res: comPass._id.toString() }));
+            if (comPass.token && req.body.token) {
+              let verification = verifyToken(req.body.token, comPass.token);
+              console.log(verification);
+              if (verification == true) {
+                try {
+                  jwt.verify(comPass.token, "c<|ua6zX/0tU(Qv70Pu");
+                  res.send(JSON.stringify({ res: comPass.token.toString() }));
+                } catch (error) {
+                  if (error.name == "TokenExpiredError") {
+                    const actuToken = jwt.sign(
+                      { u: comPass._id.toString() },
+                      "c<|ua6zX/0tU(Qv70Pu",
+                      {
+                        expiresIn: "1h",
+                      }
+                    );
+                    try {
+                      await client
+                        .db("diverweb")
+                        .collection("users")
+                        .updateOne(
+                          { _id: new ObjectId(comPass._id) },
+                          { $set: { token: actuToken } }
+                        );
+                      res.send(JSON.stringify({ res: actuToken.toString() }));
+                    } catch (error) {
+                      res.send(JSON.stringify({ res: "!PVER" }));
+                    }
+                  }
+                }
+              } else {
+                if (verification == "NEQ") {
+                  res.send(JSON.stringify({ res: "NEQ" }));
+                } else {
+                  res.send(JSON.stringify({ res: "!PVER" }));
+                }
+              }
+            } else if (!comPass.token && req.body.token) {
+              const actuToken = jwt.sign(
+                { u: comPass._id.toString() },
+                "c<|ua6zX/0tU(Qv70Pu",
+                {
+                  expiresIn: "1h",
+                }
+              );
+              try {
+                await client
+                  .db("diverweb")
+                  .collection("users")
+                  .updateOne(
+                    { _id: new ObjectId(comPass._id) },
+                    { $set: { token: actuToken } }
+                  );
+                res.send(JSON.stringify({ res: actuToken.toString() }));
+              } catch (error) {
+                res.send(JSON.stringify({ res: "!PVER" }));
+              }
+            } else if (!comPass.token && !req.body.token) {
+              const actuToken = jwt.sign(
+                { u: comPass._id.toString() },
+                "c<|ua6zX/0tU(Qv70Pu",
+                {
+                  expiresIn: "1h",
+                }
+              );
+              try {
+                await client
+                  .db("diverweb")
+                  .collection("users")
+                  .updateOne(
+                    { _id: new ObjectId(comPass._id) },
+                    { $set: { token: actuToken } }
+                  );
+                res.send(JSON.stringify({ res: actuToken.toString() }));
+              } catch (error) {
+                res.send(JSON.stringify({ res: "!PVER" }));
+              }
+            } else if (comPass.token && !req.body.token) {
+              try {
+                jwt.verify(comPass.token, "c<|ua6zX/0tU(Qv70Pu");
+                res.send(JSON.stringify({ res: comPass.token.toString() }));
+              } catch (error) {
+                if (error.name == "TokenExpiredError") {
+                  const actuToken = jwt.sign(
+                    { u: comPass._id.toString() },
+                    "c<|ua6zX/0tU(Qv70Pu",
+                    {
+                      expiresIn: "1h",
+                    }
+                  );
+                  try {
+                    await client
+                      .db("diverweb")
+                      .collection("users")
+                      .updateOne(
+                        { _id: new ObjectId(comPass._id) },
+                        { $set: { token: actuToken } }
+                      );
+                    res.send(JSON.stringify({ res: actuToken.toString() }));
+                  } catch (error) {
+                    res.send(JSON.stringify({ res: "!PVER" }));
+                  }
+                }
+              }
+            }
           }
         } catch (error) {
           throw error;
         }
       } else {
         try {
+          const tokenAut = jwt.sign(
+            { u: req.body.email },
+            "c<|ua6zX/0tU(Qv70Pu",
+            {
+              expiresIn: "1h",
+            }
+          );
           const createU = await client
             .db("diverweb")
             .collection("users")
             .insertOne({
               email: req.body.email,
               password: CryptoJS.MD5(process.env.SK + req.body.pass).toString(),
+              token: tokenAut,
             });
           res.send(JSON.stringify({ res: createU.insertedId.toString() }));
         } catch (error) {
