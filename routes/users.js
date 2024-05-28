@@ -252,26 +252,6 @@ router.post("/compUser", async function (req, res, next) {
                   }
                 }
               }
-            } else if (!comPass.token) {
-              const actuToken = jwt.sign(
-                { u: comPass._id.toString() },
-                "c<|ua6zX/0tU(Qv70Pu",
-                {
-                  expiresIn: "1h",
-                }
-              );
-              try {
-                await client
-                  .db("diverweb")
-                  .collection("users")
-                  .updateOne(
-                    { _id: new ObjectId(comPass._id) },
-                    { $set: { token: actuToken } }
-                  );
-                res.send(JSON.stringify({ res: actuToken.toString() }));
-              } catch (error) {
-                res.send(JSON.stringify({ res: "!PVER" }));
-              }
             } else if (!comPass.token && !req.body.token) {
               const actuToken = jwt.sign(
                 { u: comPass._id.toString() },
