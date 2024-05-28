@@ -32,6 +32,7 @@ function verifyToken(reqToken, uToken) {
         let actuTok = jwt.sign({ u: uToken }, "c<|ua6zX/0tU(Qv70Pu", {
           expiresIn: "1h",
         });
+        console.log("Token servidor actualizado");
         return actuTok;
       } else {
         console.log(error);
@@ -44,6 +45,7 @@ function verifyToken(reqToken, uToken) {
       let actuTok = jwt.sign({ u: reqToken }, "c<|ua6zX/0tU(Qv70Pu", {
         expiresIn: "1h",
       });
+      console.log("Token cliente actualizado");
       return actuTok;
     } else {
       console.log(error);
@@ -91,8 +93,19 @@ router.post("/getInfo", async (req, res, next) => {
       if (user.length == 0) {
         res.send(JSON.stringify({ res: "TOKERR" }));
       } else {
-        console.log(user);
-        res.send(JSON.stringify(user[0]));
+        try {
+          const verification = jwt.verify(
+            req.body.userId,
+            "c<|ua6zX/0tU(Qv70Pu"
+          );
+          console.log(verification);
+          console.log(user);
+          res.send(JSON.stringify(user[0]));
+        } catch (error) {
+          if (error == "TokenExpiredError") {
+            res.send(JSON.stringify({ res: "TOKERR" }));
+          }
+        }
       }
     } catch (error) {
       console.log(error);
