@@ -29,7 +29,7 @@ function verifyToken(reqToken, uToken) {
     } catch (error) {
       console.log(error);
       if (error.name == "TokenExpiredError") {
-        let actuTok = jwt.sign({ u: uToken }, "c<|ua6zX/0tU(Qv70Pu", {
+        let actuTok = jwt.sign({ u: uToken.u }, "c<|ua6zX/0tU(Qv70Pu", {
           expiresIn: "1h",
         });
         console.log("Token servidor actualizado");
@@ -42,7 +42,7 @@ function verifyToken(reqToken, uToken) {
   } catch (error) {
     console.log(error);
     if (error.name == "TokenExpiredError") {
-      let actuTok = jwt.sign({ u: reqToken }, "c<|ua6zX/0tU(Qv70Pu", {
+      let actuTok = jwt.sign({ u: reqToken.u }, "c<|ua6zX/0tU(Qv70Pu", {
         expiresIn: "1h",
       });
       console.log("Token cliente actualizado");
