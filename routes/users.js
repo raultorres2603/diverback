@@ -61,6 +61,43 @@ router.get("/", function (req, res, next) {
 
 /* POST users listing. */
 
+router.post("/searchUser", async (req, res, next) => {
+  try {
+    await client.connect();
+    try {
+      const user = await client
+        .db("diverweb")
+        .collection("users")
+        .findOne(
+          { token: req.body.token },
+          { projection: { password: 0, _id: 0 } }
+        );
+      const verifyT = verifyToken(req.body.token, user.token);
+      if (verifyT != "NEQ" && verifyToken != "!PVER") {
+        const users = await client
+          .db("diverweb")
+          .collection("users")
+          .find(
+            { email: { $regex: req.body.search.toString(), $options: "i" } },
+            { projection: { password: 0, _id: 0, token: 0 } }
+          )
+          .toArray();
+        if (users.length == 0) {
+          res.send(JSON.stringify({ res: "NOUSERS" }));
+        } else {
+          res.send(JSON.stringify({ res: users }));
+        }
+      } else {
+        res.send(JSON.stringify({ res: "TOKERR" }));
+      }
+    } catch (error) {
+      throw error;
+    }
+  } catch (error) {
+    throw error;
+  }
+});
+
 router.post("/getInfo", async (req, res, next) => {
   try {
     await client.connect();
