@@ -22,7 +22,7 @@ function verifyToken(reqToken, uToken) {
       const uTok = jwt.verify(uToken, "c<|ua6zX/0tU(Qv70Pu");
       console.log(uTok);
       if (reqTok.u == uTok.u) {
-        return uToken;
+        return { actualTok: uToken };
       } else {
         return "NEQ";
       }
@@ -33,7 +33,7 @@ function verifyToken(reqToken, uToken) {
           expiresIn: "1h",
         });
         console.log("Token servidor actualizado");
-        return actuTok;
+        return { actuTok: actuTok };
       } else {
         console.log(error);
         return "!PVER";
@@ -46,7 +46,7 @@ function verifyToken(reqToken, uToken) {
         expiresIn: "1h",
       });
       console.log("Token cliente actualizado");
-      return actuTok;
+      return { actuTok: actuTok };
     } else {
       console.log(error);
       return "!PVER";
@@ -73,7 +73,7 @@ router.post("/searchUser", async (req, res, next) => {
           { projection: { password: 0, _id: 0 } }
         );
       const verifyT = verifyToken(req.body.token, user.token);
-      if (verifyT != "NEQ" && verifyToken != "!PVER") {
+      if (verifyT != "NEQ" && verifyT != "!PVER" && !verifyT.actuTok) {
         const users = await client
           .db("diverweb")
           .collection("users")
@@ -86,6 +86,32 @@ router.post("/searchUser", async (req, res, next) => {
           res.send(JSON.stringify({ res: "NOUSERS" }));
         } else {
           res.send(JSON.stringify({ res: users }));
+        }
+      } else if (verifyT.actuTok) {
+        // update token of user
+        try {
+          await client
+            .db("diverweb")
+            .collection("users")
+            .updateOne(
+              { token: user.token },
+              { $set: { token: verifyT.actuTok } }
+            );
+          const users = await client
+            .db("diverweb")
+            .collection("users")
+            .find(
+              { email: { $regex: req.body.search.toString(), $options: "i" } },
+              { projection: { password: 0, _id: 0, token: 0 } }
+            )
+            .toArray();
+          if (users.length == 0) {
+            res.send(JSON.stringify({ res: "NOUSERS" }));
+          } else {
+            res.send(JSON.stringify({ res: users }));
+          }
+        } catch (error) {
+          throw error;
         }
       } else {
         res.send(JSON.stringify({ res: "TOKERR" }));
@@ -130,17 +156,40 @@ router.post("/getInfo", async (req, res, next) => {
       if (user.length == 0) {
         res.send(JSON.stringify({ res: "TOKERR" }));
       } else {
-        try {
-          const verification = jwt.verify(
-            req.body.userId,
-            "c<|ua6zX/0tU(Qv70Pu"
-          );
-          console.log(verification);
-          console.log(user);
-          res.send(JSON.stringify(user[0]));
-        } catch (error) {
-          if (error == "TokenExpiredError") {
-            res.send(JSON.stringify({ res: "TOKERR" }));
+        // verify token if it's expired or not
+        const verifyT = verifyToken(req.body.userId, user[0].token);
+        if (
+          (verifyT == "NEQ" || verifyT == "!PVER") &&
+          !verifyT.actuTok &&
+          !verifyT.actualTok
+        ) {
+          res.send(JSON.stringify({ res: "TOKERR" }));
+        } else if (verifyT.actuTok) {
+          // update token of user
+          try {
+            await client
+              .db("diverweb")
+              .collection("users")
+              .updateOne(
+                { token: user[0].token },
+                { $set: { token: verifyT.actuTok } }
+              );
+          } catch (error) {
+            throw error;
+          }
+        } else if (verifyT.actualTok) {
+          try {
+            const verification = jwt.verify(
+              req.body.userId,
+              "c<|ua6zX/0tU(Qv70Pu"
+            );
+            console.log(verification);
+            console.log(user);
+            res.send(JSON.stringify(user[0]));
+          } catch (error) {
+            if (error == "TokenExpiredError") {
+              res.send(JSON.stringify({ res: "TOKERR" }));
+            }
           }
         }
       }
