@@ -250,7 +250,7 @@ router.post("/addDiverDay", async function (req, res, next) {
             .db("diverweb")
             .collection("users")
             .updateOne(
-              { _id: new ObjectId(req.body.id) },
+              { token: req.body.token },
               { $push: { diverdays: req.body.diverday } }
             ); // { $set: req.body });
           res.send({ res: "OK" });
