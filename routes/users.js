@@ -231,6 +231,37 @@ router.post("/update", async function (req, res, next) {
   }
 });
 
+// post route to add the friend to the user's array of friends, we will add the ID's friend
+router.post("/addFriend", async function (req, res, next) {
+  try {
+    await client.connect();
+    try {
+      // find _id of the friend
+      const friend = await client
+        .db("diverweb")
+        .collection("users")
+        .findOne({ email: req.body.friend.email });
+      // add friend to user's friends
+      try {
+        await client
+          .db("diverweb")
+          .collection("users")
+          .updateOne(
+            { token: req.body.token },
+            { $push: { friends: { id: friend._id, alias: friend.name } } }
+          ); // { $set: req.body });
+        res.send({ res: "OK" });
+      } catch (error) {
+        throw error;
+      }
+    } catch (error) {
+      throw error;
+    }
+  } catch (error) {
+    throw error;
+  }
+});
+
 router.post("/addDiverDay", async function (req, res, next) {
   try {
     await client.connect();
