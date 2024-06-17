@@ -140,8 +140,8 @@ router.post("/getInfo", async (req, res, next) => {
           {
             $lookup: {
               from: "users",
-              localField: "_id",
-              foreignField: "friends.id",
+              localField: "friends.id",
+              foreignField: "_id",
               as: "friends",
             },
           },
