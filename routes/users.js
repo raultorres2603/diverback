@@ -142,7 +142,7 @@ router.post("/getInfo", async (req, res, next) => {
               from: "users",
               localField: "friends.id",
               foreignField: "_id",
-              as: "friends",
+              as: "friendss",
             },
           },
           {
@@ -248,9 +248,42 @@ router.post("/addFriend", async function (req, res, next) {
           .collection("users")
           .updateOne(
             { token: req.body.token },
-            { $push: { friends: { id: friend._id, alias: friend.name } } }
+            {
+              $push: {
+                friends: { id: new ObjectId(friend._id), alias: friend.name },
+              },
+            }
           ); // { $set: req.body });
-        res.send({ res: "OK" });
+        //find _id of user
+        try {
+          const user = await client
+            .db("diverweb")
+            .collection("users")
+            .findOne({ token: req.body.token });
+          // add user to friend's friends
+          try {
+            await client
+              .db("diverweb")
+              .collection("users")
+              .updateOne(
+                { _id: new ObjectId(friend._id) },
+                {
+                  $push: {
+                    friends: {
+                      id: new ObjectId(user._id),
+                      alias: user.name,
+                      accepted: false,
+                    },
+                  },
+                }
+              ); // { $set: req.body });
+            res.send({ res: "OK" });
+          } catch (error) {
+            throw error;
+          }
+        } catch (error) {
+          throw error;
+        }
       } catch (error) {
         throw error;
       }
