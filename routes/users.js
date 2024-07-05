@@ -147,8 +147,10 @@ router.post("/getInfo", async (req, res, next) => {
           },
           {
             $project: {
-              password: 0,
               _id: 0,
+              password: 0,
+              "friendss.token": 0,
+              "friendss.password": 0,
             },
           },
         ])
