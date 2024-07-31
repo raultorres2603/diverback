@@ -233,31 +233,71 @@ router.post("/update", async function (req, res, next) {
   }
 });
 
-// post route to add the friend to the user's array of friends, we will add the ID's friend
-router.post("/addFriend", async function (req, res, next) {
+router.post("/acceptFriend", async function (req, res, next) {
   try {
     await client.connect();
-    try {
-      // find _id of the friend
-      const friend = await client
-        .db("diverweb")
-        .collection("users")
-        .findOne({ email: req.body.friend.email });
-      // add friend to user's friends
+    if (req.body.accepted == true) {
       try {
         await client
           .db("diverweb")
           .collection("users")
           .updateOne(
-            { token: req.body.token },
             {
-              $push: {
-                friends: { id: new ObjectId(friend._id), alias: friend.name },
-              },
+              token: req.body.token,
+              "friends.id": new ObjectId(req.body.friend.id),
+            },
+            {
+              $set: { "friends.$.accepted": true },
             }
           ); // { $set: req.body });
-        //find _id of user
         try {
+          // find _id of user
+          const user = await client
+            .db("diverweb")
+            .collection("users")
+            .findOne({ token: req.body.token });
+          // update user to friend's friends
+          try {
+            await client
+              .db("diverweb")
+              .collection("users")
+              .updateOne(
+                {
+                  _id: new ObjectId(req.body.friend.id),
+                  "friends.id": new ObjectId(user._id),
+                },
+                {
+                  $set: {
+                    "friends.$.accepted": true,
+                  },
+                }
+              );
+            res.send({ res: "OK" });
+          } catch (error) {
+            throw error;
+          }
+        } catch (error) {
+          throw error;
+        }
+      } catch (error) {
+        throw error;
+      }
+    } else {
+      try {
+        await client
+          .db("diverweb")
+          .collection("users")
+          .updateOne(
+            {
+              token: req.body.token,
+              "friends.id": new ObjectId(req.body.friend.id),
+            },
+            {
+              $pull: { friends: { id: new ObjectId(req.body.friend.id) } },
+            }
+          );
+        try {
+          // find _id of user
           const user = await client
             .db("diverweb")
             .collection("users")
@@ -268,23 +308,103 @@ router.post("/addFriend", async function (req, res, next) {
               .db("diverweb")
               .collection("users")
               .updateOne(
-                { _id: new ObjectId(friend._id) },
                 {
-                  $push: {
-                    friends: {
-                      id: new ObjectId(user._id),
-                      alias: user.name,
-                      accepted: false,
-                    },
+                  _id: new ObjectId(req.body.friend.id),
+                  "friends.id": new ObjectId(user._id),
+                },
+                {
+                  $pull: {
+                    friends: { id: new ObjectId(user._id) },
                   },
                 }
-              ); // { $set: req.body });
-            res.send({ res: "OK" });
+              );
+            res.send({ res: "OK_NO" });
           } catch (error) {
             throw error;
           }
         } catch (error) {
           throw error;
+        }
+      } catch (error) {
+        throw error;
+      }
+    }
+  } catch (error) {
+    throw error;
+  }
+});
+
+// post route to add the friend to the user's array of friends, we will add the ID's friend
+router.post("/addFriend", async function (req, res, next) {
+  try {
+    await client.connect();
+    try {
+      // find _id of the friend
+      const friend = await client
+        .db("diverweb")
+        .collection("users")
+        .findOne({ email: req.body.friend.email });
+      // comprobation if friend exists on user's friends
+      try {
+        const comprob = await client
+          .db("diverweb")
+          .collection("users")
+          .findOne({
+            token: req.body.token,
+            "friends.id": new ObjectId(friend._id),
+          });
+        if (comprob) {
+          res.send(JSON.stringify({ res: "EXISTS" }));
+        } else {
+          // add friend to user's friends
+          try {
+            await client
+              .db("diverweb")
+              .collection("users")
+              .updateOne(
+                { token: req.body.token },
+                {
+                  $push: {
+                    friends: {
+                      id: new ObjectId(friend._id),
+                      alias: friend.name,
+                    },
+                  },
+                }
+              ); // { $set: req.body });
+            //find _id of user
+            try {
+              const user = await client
+                .db("diverweb")
+                .collection("users")
+                .findOne({ token: req.body.token });
+              // add user to friend's friends
+              try {
+                await client
+                  .db("diverweb")
+                  .collection("users")
+                  .updateOne(
+                    { _id: new ObjectId(friend._id) },
+                    {
+                      $push: {
+                        friends: {
+                          id: new ObjectId(user._id),
+                          alias: user.name,
+                          accepted: false,
+                        },
+                      },
+                    }
+                  ); // { $set: req.body });
+                res.send({ res: "OK" });
+              } catch (error) {
+                throw error;
+              }
+            } catch (error) {
+              throw error;
+            }
+          } catch (error) {
+            throw error;
+          }
         }
       } catch (error) {
         throw error;
