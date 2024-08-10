@@ -155,6 +155,7 @@ router.post("/getInfo", async (req, res, next) => {
           },
         ])
         .toArray();
+      console.log(user);
       if (user.length == 0) {
         res.send(JSON.stringify({ res: "TOKERR" }));
       } else {
