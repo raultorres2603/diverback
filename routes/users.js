@@ -489,6 +489,7 @@ router.post("/compUser", async function (req, res, next) {
       });
       if (compU) {
         try {
+          console.log(process.env.SK);
           let comPass = await client
             .db("diverweb")
             .collection("users")
